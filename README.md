@@ -18,9 +18,7 @@ This is a simplified representation of a project directory structure for a data 
     - **external/**: Data from external sources.
       - `external_data.csv`
       - `geospatial_data.geojson`
-    - **intermediate/**: Intermediate data files.
-      - `wrangled_data.csv`
-      - `ingested_data.json`
+
 
   - **notebooks/**: Jupyter notebooks for different stages of the project.
     - `exploratory_analysis.ipynb`

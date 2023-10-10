@@ -1,6 +1,10 @@
 from typing import AnyStr, Iterable, IO
-
+import logging
 from azure.storage.blob import BlobServiceClient
+
+logging.basicConfig(filename='azure_util.log',
+                    level=logging.INFO,
+                    format='%(asctime)s [%(levelname)s] %(message)s')
 
 
 class AzureStorage(object):
@@ -18,12 +22,15 @@ class AzureStorage(object):
               blob_name: str,
               data_to_store: bytes | str | Iterable[AnyStr] | IO[AnyStr]) -> bool:
         try:
+            logging.info(f'Start Storing at {container_name}....')
             container_client = self.blob_service_client.get_container_client(container_name)
             blob_client = container_client.get_blob_client(blob_name)
             blob_client.upload_blob(data_to_store, overwrite=True)
+            logging.info(f'Storing operation completed!')
             return True
         except Exception as E:
-            print(str(E))
+            logging.exception(str(E))
+
             return False
 
     def delete(self,
@@ -31,39 +38,43 @@ class AzureStorage(object):
                blob_name: str,
                ) -> bool:
         try:
+            logging.info(f'Start Deleting blob at {blob_name}')
             container_client = self.blob_service_client.get_container_client(container_name)
             blob_client = container_client.get_blob_client(blob_name)
             blob_client.delete_blob()
+            logging.info(f'Deletion Done!')
             return True
         except Exception as E:
-            print(str(E))
+            logging.exception(str(E))
             return False
 
-    def list_all_blobs(self, container_name):
+    def list_all_blobs(self, container_name:str) -> list | None:
         blobs = []
-        container_client = self.blob_service_client.get_container_client(container_name)
-        for blob in container_client.list_blobs():
-            blobs.append(blob)
-        return blobs
+        try:
+            container_client = self.blob_service_client.get_container_client(container_name)
+            for blob in container_client.list_blobs():
+                blobs.append(blob)
+            return blobs
+        except Exception as E:
+            logging.exception(str(E))
+            return None
 
     def retrieve(self,
                  container_name: str,
                  blob_name: str,
                  ) -> bytes | None:
         try:
+            logging.info(f'Start retrieving from Container: {container_name}, blob: {blob_name}')
             container_client = self.blob_service_client.get_container_client(container_name)
             blob_client = container_client.get_blob_client(blob_name)
             blob_data = blob_client.download_blob()
             data_bytes = blob_data.readall()
+            logging.info(f'Retrival is done!')
             return data_bytes
         except Exception as E:
-            print(str(E))
+            logging.exception(str(E))
             return None
-
-
-
 
 
 if __name__ == '__main__':
     pass
-

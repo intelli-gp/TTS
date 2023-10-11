@@ -43,35 +43,51 @@ class LinkedInScraper(object):
         self.email = email
         self.password = password
         self.tutor_linkedin_username = tutor_linkedin_username
+        self.content = None
         time.sleep(2)
 
     def scrape_personal_data(self, data_type: DataType) -> None:
         status = self.__authenticate()
         if status:
             url = LinkedInScraper.BASE_URL + 'in/' + '%s/' % self.tutor_linkedin_username
-            self.driver.get(url)
+            # self.driver.get(url)
             choices = {
-                DataType.Posts: self.__get_all_posts
+                DataType.Posts: self.__get_all_posts,
+                DataType.Comments: self.__get_all_comments
             }
             if data_type in choices:
-                choices[data_type](url)
-            # self.__search_for_person()
+                choices[data_type](url, data_type)
+
             time.sleep(20)
             self.driver.close()
         else:
-            logging.error('Can Not load posts!')
+            logging.error('Can not authenticate!')
 
-    def __get_all_posts(self, url):
-        url += 'recent-activity/all/'
-        self.driver.get(url)
+    def __get_all_posts(self, url, data_type: DataType):
+        full_url = url + 'recent-activity/all/'
+        self.driver.get(full_url)
         time.sleep(3)
         logging.info('Start Loading Posts')
         try:
-            self.__scroll_and_collect_posts()
+            self.__scroll_and_collect()
+            logging.info('Completed loading Posts')
+            self.__save_html_file(self.content, data_type)
         except Exception as E:
             logging.exception(E)
 
-    def __scroll_and_collect_posts(self):
+    def __get_all_comments(self, url, data_type: DataType):
+        full_url = url + 'recent-activity/comments/'
+        self.driver.get(full_url)
+        time.sleep(2.5)
+        logging.info('Loading Comments....')
+        try:
+            self.__scroll_and_collect()
+            logging.info('Completed loading comments successfully!')
+            self.__save_html_file(self.content, data_type)
+        except Exception as E:
+            logging.exception(E)
+
+    def __scroll_and_collect(self):
 
         self.content = self.driver.page_source
         temp = None
@@ -89,14 +105,17 @@ class LinkedInScraper(object):
                 except:
                     logging.exception('Can not find the see more button')
 
-        except  Exception as E:
+        except Exception as E:
             print(E)
 
-        if self.content:
-            self.__save_html_file(self.content)
-    def __save_html_file(self, html_content):
+    def __save_html_file(self, html_content, data_type: DataType):
         current_time = time.time()
-        file_path = f'./data/raw/linkedIn-{self.tutor_linkedin_username}-posts-{current_time}.html'
+        file_path = None
+        if data_type == DataType.Posts:
+            file_path = f'./data/raw/linkedIn-{self.tutor_linkedin_username}-posts-{current_time}.html'
+        elif data_type == DataType.Comments:
+            file_path = f'./data/raw/linkedIn-{self.tutor_linkedin_username}-comments-{current_time}.html'
+
         logging.info('Start Saving the file......')
         with open(file_path, 'w', encoding='utf-8') as file:
             # Write HTML content to the file
@@ -177,5 +196,5 @@ if __name__ == '__main__':
     scraper = LinkedInScraper(email=email,
                               password=password,
                               tutor_linkedin_username='andrewyng')
-    scraper.scrape_personal_data(DataType.Posts)
+    scraper.scrape_personal_data(DataType.Comments)
     print()

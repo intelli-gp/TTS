@@ -28,6 +28,7 @@ logging.basicConfig(filename='linkedin_scraper.log',
 
 class LinkedInScraper(object):
     BASE_URL = 'https://www.linkedin.com/'
+    SCROLL_PAUSE_TIME = 1.5
 
     def __init__(self,
                  email: str,
@@ -42,75 +43,84 @@ class LinkedInScraper(object):
         self.email = email
         self.password = password
         self.tutor_linkedin_username = tutor_linkedin_username
+        self.content = None
         time.sleep(2)
 
     def scrape_personal_data(self, data_type: DataType) -> None:
         status = self.__authenticate()
         if status:
             url = LinkedInScraper.BASE_URL + 'in/' + '%s/' % self.tutor_linkedin_username
-            self.driver.get(url)
+            # self.driver.get(url)
             choices = {
-                DataType.Posts: self.__get_all_posts
+                DataType.Posts: self.__get_all_posts,
+                DataType.Comments: self.__get_all_comments
             }
             if data_type in choices:
-                choices[data_type](url)
-            # self.__search_for_person()
+                choices[data_type](url, data_type)
+
             time.sleep(20)
             self.driver.close()
         else:
-            logging.error('Can Not load posts!')
+            logging.error('Can not authenticate!')
 
-    def __get_all_posts(self, url):
-        url += 'recent-activity/all/'
-        self.driver.get(url)
+    def __get_all_posts(self, url, data_type: DataType):
+        full_url = url + 'recent-activity/all/'
+        self.driver.get(full_url)
         time.sleep(3)
-        posts = None
         logging.info('Start Loading Posts')
         try:
-            self.__scroll_and_collect_posts()
+            self.__scroll_and_collect()
+            logging.info('Completed loading Posts')
+            self.__save_html_file(self.content, data_type)
         except Exception as E:
             logging.exception(E)
 
-    # Function to wait for the "See More" button to become visible
-    def __wait_for_see_more_button(self):
+    def __get_all_comments(self, url, data_type: DataType):
+        full_url = url + 'recent-activity/comments/'
+        self.driver.get(full_url)
+        time.sleep(2.5)
+        logging.info('Loading Comments....')
         try:
-            btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                '/html/body/div[5]/div[3]/div/div/div[2]/div/div/main/div/section/div[2]/div/div/div[2]/div/button'))
-            btn.click().perform()
-            print("See More button is now visible.")
-        except Exception as e:
-            print("See More button did not become visible within the timeout:", str(e))
+            self.__scroll_and_collect()
+            logging.info('Completed loading comments successfully!')
+            self.__save_html_file(self.content, data_type)
+        except Exception as E:
+            logging.exception(E)
 
-    def __scroll_and_collect_posts(self):
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
-        first_time = True
-        scroll_step = 500
-        while True:
-            self.driver.execute_script(f"window.scrollBy(0, {scroll_step});")
-            time.sleep(3)
-            self.__wait_for_see_more_button()
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break
-            last_height = new_height
+    def __scroll_and_collect(self):
 
-            # Collect and save the HTML content of the posts
-        self.posts = self.driver.find_element(By.XPATH,
-                                              '/html/body/div[5]/div[3]/div/div/div[2]/div/div/main/div/section/div[2]/div/div/div[1]/ul')
-        if self.posts:
-            html_content = self.posts.get_attribute('outerHTML')
-            self.__save_html_file(html_content)
+        self.content = self.driver.page_source
+        temp = None
+        try:
+            while True:
+                self.driver.execute_script("window.scrollBy(0,600)")
+                time.sleep(2.5)
+                temp = self.driver.page_source
+                if self.content != temp:
+                    self.content = temp
+                try:
+                    self.driver.execute_script("document.getElementById('ember263').click();")
+                    time.sleep(2.5)
+                    logging.info('See more button is clicked!')
+                except:
+                    logging.exception('Can not find the see more button')
 
-    # posts container
-    ## /html/body/div[5]/div[3]/div/div/div[2]/div/div/main/div/section/div[2]/div/div/div[1]/ul
-    # click
-    ## /html/body/div[5]/div[3]/div/div/div[2]/div/div/main/div/section/div[2]/div/div/div[2]/div/button
-    def __save_html_file(self, html_content):
+        except Exception as E:
+            print(E)
+
+    def __save_html_file(self, html_content, data_type: DataType):
         current_time = time.time()
-        file_path = f'./data/raw/linkedIn-{self.tutor_linkedin_username}-posts-{current_time}.html'
+        file_path = None
+        if data_type == DataType.Posts:
+            file_path = f'./data/raw/linkedIn-{self.tutor_linkedin_username}-posts-{current_time}.html'
+        elif data_type == DataType.Comments:
+            file_path = f'./data/raw/linkedIn-{self.tutor_linkedin_username}-comments-{current_time}.html'
+
+        logging.info('Start Saving the file......')
         with open(file_path, 'w', encoding='utf-8') as file:
             # Write HTML content to the file
             file.write(html_content)
+        logging.info('File stored Successfully!')
 
     def __search_for_person(self):
         try:
@@ -119,7 +129,7 @@ class LinkedInScraper(object):
                     (By.XPATH, '/html/body/div[5]/header/div/div/div/div[1]/input')
                 )
             )
-            search_bar.send_keys(self.tutor_name)
+            search_bar.send_keys(self.tutor_linkedin_username)
             search_bar.send_keys(Keys.RETURN)
             logging.info(f'Search Done')
         except:
@@ -186,5 +196,5 @@ if __name__ == '__main__':
     scraper = LinkedInScraper(email=email,
                               password=password,
                               tutor_linkedin_username='andrewyng')
-    scraper.scrape_personal_data(DataType.Posts)
+    scraper.scrape_personal_data(DataType.Comments)
     print()

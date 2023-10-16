@@ -16,6 +16,7 @@ from selenium.webdriver.chrome.options import Options
 from Linkedin import get_inputs
 import sys
 from bs4 import BeautifulSoup
+import pandas as pd
 
 logging.basicConfig(filename='./coursera_scraper.log',
                     level=logging.DEBUG,
@@ -29,6 +30,7 @@ class CourseraScarper(object):
     BASE_URL = 'https://www.coursera.org/?authMode=login'
     TIME_DELAY = 1.5
     HOME_URL = 'https://www.coursera.org'
+    USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36'
 
     def __init__(self,
                  email: str,
@@ -36,13 +38,16 @@ class CourseraScarper(object):
         self.email = email
         self.password = password
         chrome_options = Options()
+        chrome_options.add_argument(f"user-agent={CourseraScarper.USER_AGENT}")
         self.driver = webdriver.Chrome(options=chrome_options)
+
         self.driver.get(CourseraScarper.BASE_URL)
         time.sleep(CourseraScarper.TIME_DELAY)
         self.__get_cookies()
         self.have_cookies = True if self.driver.get_cookies() else False
         # self.soup = None
         self.lessons: list = []
+        self.transcripts: list = []
 
     def scrape(self):
         status = self.__authenticate()
@@ -57,14 +62,26 @@ class CourseraScarper(object):
             print(f'currently on {full_url} ....')
             self.driver.get(full_url)
             time.sleep(10)
-            path = r'D:\temo\intelli-service\data\raw\coursera'
-            file_name = week_link.replace('/', '-') + '.html'
-            save_html(path + file_name, self.driver.page_source)
+            # path = r'D:\temo\intelli-service\data\raw\coursera'
+            # file_name = week_link.replace('/', '-') + '.html'
+            # save_html(path + file_name, self.driver.page_source)
             lessons_links = self.__get_lesson_links_per_week()
             all_lessons.extend(lessons_links)
         self.lessons = all_lessons
+        self.__iterate_and_collect_transcripts()
+        df = pd.DataFrame({'link': self.lessons, 'transcript': self.transcripts})
+        df.to_csv(r'D:\temo\intelli-service\data\raw\machine-learning.csv', mode='w')
         time.sleep(3)
         self.driver.quit()
+
+    def __iterate_and_collect_transcripts(self):
+        self.transcripts = []
+        for link_lesson in self.lessons:
+            full_link = CourseraScarper.HOME_URL + link_lesson
+            self.driver.get(full_link)
+            time.sleep(5)
+            transcript = self.__get_transcripts()
+            self.transcripts.append(transcript)
 
     def __get_cookies(self):
         cookies_binary = read_cookies()
@@ -167,6 +184,7 @@ def read_html(file_path):
             html = file.read()
         return html
     return None
+
 
 if __name__ == '__main__':
     # tutor = Tutor(name='dummy')

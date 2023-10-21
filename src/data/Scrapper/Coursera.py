@@ -18,6 +18,7 @@ import sys
 from bs4 import BeautifulSoup
 import pandas as pd
 from tqdm import tqdm
+from src.utils.azure_utils import AzureStorage
 
 logging.basicConfig(filename='./coursera_scraper.log',
                     level=logging.DEBUG,
@@ -76,9 +77,10 @@ class CourseraScarper(object):
 
     def __del__(self):
         self.driver.quit()
+
     def __iterate_and_collect_transcripts(self):
         self.transcripts = []
-        for link_lesson in tqdm(self.lessons,total=len(self.lessons)):
+        for link_lesson in tqdm(self.lessons, total=len(self.lessons)):
             full_link = CourseraScarper.HOME_URL + link_lesson
             self.driver.get(full_link)
             time.sleep(5)
@@ -188,6 +190,15 @@ def read_html(file_path):
     return None
 
 
+def upload_csv_files(files: list[tuple[str, str]]):
+    azure_obj = AzureStorage(account_name='graduationwork3664469496',
+                             account_key='Vs7mgSGdtSV9S7c+CU8iRoFW74/QbqhHtsQuSudKKdE5sRsiU0k94vjFwOIlxRS79v0EsBxvQP0z+AStsanD+Q==')
+    for file_name, path in tqdm(files, total=len(files)):
+        azure_obj.store(container_name='tutors',
+                        blob_name=f'Andrew NG/raw/text/Coursera/{file_name}',
+                        data_to_store_path=path)
+
+
 if __name__ == '__main__':
     links_file_path = r'D:\temo\intelli-service\src\data\Scrapper\files\coursera-links.csv'
     df = pd.read_csv(links_file_path)
@@ -197,3 +208,8 @@ if __name__ == '__main__':
     for index, entry in tqdm(df.iterrows(),total=len(df)):
         scraper.scrape(course_name=entry['course_name'],
                        course_link=entry['link'])
+
+    BASE_PATH = r'D:\temo\intelli-service\data\raw\coursera'
+    files = [(file_name, BASE_PATH + '\\' + file_name) for file_name in os.listdir(BASE_PATH)]
+    # print(files)
+    upload_csv_files(files)

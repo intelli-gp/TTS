@@ -17,6 +17,7 @@ from Linkedin import get_inputs
 import sys
 from bs4 import BeautifulSoup
 import pandas as pd
+from tqdm import tqdm
 
 logging.basicConfig(filename='./coursera_scraper.log',
                     level=logging.DEBUG,
@@ -49,17 +50,16 @@ class CourseraScarper(object):
         self.lessons: list = []
         self.transcripts: list = []
 
-    def scrape(self):
+    def scrape(self, course_name: str, course_link: str):
         status = self.__authenticate()
         time.sleep(20)
-        self.driver.get('https://www.coursera.org/learn/machine-learning/home')
+        self.driver.get(course_link)
         time.sleep(10)
         # self.soup = BeautifulSoup(self.driver.page_source,'html.parser')
         hrefs = self.__get_weeks_per_course()
         all_lessons = []
-        for week_link in hrefs:
+        for week_link in tqdm(hrefs, total=len(hrefs)):
             full_url = CourseraScarper.HOME_URL + week_link
-            print(f'currently on {full_url} ....')
             self.driver.get(full_url)
             time.sleep(10)
             # path = r'D:\temo\intelli-service\data\raw\coursera'
@@ -70,13 +70,15 @@ class CourseraScarper(object):
         self.lessons = all_lessons
         self.__iterate_and_collect_transcripts()
         df = pd.DataFrame({'link': self.lessons, 'transcript': self.transcripts})
-        df.to_csv(r'D:\temo\intelli-service\data\raw\machine-learning.csv', mode='w')
+        df.to_csv(fr'D:\\temo\\intelli-service\\data\\raw\\{course_name}.csv', mode='w')
         time.sleep(3)
-        self.driver.quit()
+        # self.driver.quit()
 
+    def __del__(self):
+        self.driver.quit()
     def __iterate_and_collect_transcripts(self):
         self.transcripts = []
-        for link_lesson in self.lessons:
+        for link_lesson in tqdm(self.lessons,total=len(self.lessons)):
             full_link = CourseraScarper.HOME_URL + link_lesson
             self.driver.get(full_link)
             time.sleep(5)
@@ -110,6 +112,7 @@ class CourseraScarper(object):
             )
             pass_input.send_keys(self.password)
             pass_input.submit()
+            # self.driver.get('https://www.coursera.org/')
             logger.info('Signed In!')
             if not self.have_cookies:
                 save_cookies(self.driver.get_cookies())
@@ -149,7 +152,6 @@ class CourseraScarper(object):
             for phrase in soup.find_all(attrs={'class': 'phrases'}):
                 for statement in phrase.find_all('span'):
                     corpse += statement.text
-            print(corpse)
             return corpse
         except Exception as E:
             logger.exception('No Transcripts here!')
@@ -187,11 +189,11 @@ def read_html(file_path):
 
 
 if __name__ == '__main__':
-    # tutor = Tutor(name='dummy')
+    links_file_path = r'D:\temo\intelli-service\src\data\Scrapper\files\coursera-links.csv'
+    df = pd.read_csv(links_file_path)
     email, password = get_inputs()
-    scraper = CourseraScarper(email=email,
-                              password=password)
-    scraper.scrape()
-    # html_content = read_html(r'D:\temo\intelli-service\data\raw\coursera-learn-machine-learning-home-week-2.html')
-    # if html_content:
-    #     print(get_lesson_links_per_week(html_content))
+    scraper = CourseraScarper(email, password)
+
+    for index, entry in tqdm(df.iterrows(),total=len(df)):
+        scraper.scrape(course_name=entry['course_name'],
+                       course_link=entry['link'])

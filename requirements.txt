@@ -95,6 +95,7 @@ stack-data==0.6.3
 terminado==0.17.1
 tinycss2==1.2.1
 tornado==6.3.3
+tqdm==4.66.1
 traitlets==5.11.2
 trio==0.22.2
 trio-websocket==0.11.1

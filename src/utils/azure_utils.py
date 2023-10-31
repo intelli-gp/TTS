@@ -1,8 +1,5 @@
-from typing import AnyStr, Iterable, IO
 import logging
-
-from azure.core.exceptions import HttpResponseError
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient, BlobType, ContentSettings, BlobClient, BlobBlock
 
 logging.basicConfig(filename='azure_util.log',
                     level=logging.INFO,
@@ -22,31 +19,39 @@ class AzureStorage(object):
     def store(self,
               container_name: str,
               blob_name: str,
-              data_to_store: bytes | str | Iterable[AnyStr] | IO[AnyStr],
-              chunk_size=4 * 1024 * 1024) -> bool:
-
-        global blob_client
-        data_size = len(data_to_store)
-        chunks = [data_to_store[i:i + chunk_size] for i in range(0, data_size, chunk_size)]
-        max_retries = 3
-        retries = 0
+              data_to_store_path: str,
+              chunk_size: int = 1024 * 1024 * 4) -> bool:
+        import uuid
+        """
+        @Description:
+        :arg
+            container_name: the exist container in the storage account 
+            blob_name:      name of the file that will be stored in the given container 
+            data_to_store_path: local path of the file that you want to upload
+            chunk_size: chunk size to upload the file by default 4MB
+                        this function depends mainly on the upload speed ,if it was not suitable and give timeout 
+                        you can change the chunk size to be less than 4MB for ex. 1MB -> 1024*1024*1
+        :return
+            bool: status of the operation True -> success , False -> failure 
+        """
         try:
-            logging.info(f'Start Storing at {container_name}....')
             container_client = self.blob_service_client.get_container_client(container_name)
             blob_client = container_client.get_blob_client(blob_name)
-            blob_client.upload_blob(data_to_store, overwrite=True)
-            logging.info(f'Storing operation completed!')
+            # upload data
+            block_list = []
+
+            with open(data_to_store_path, 'rb') as f:
+                while True:
+                    read_data = f.read(chunk_size)
+                    if not read_data:
+                        break  # done
+                    blk_id = str(uuid.uuid4())
+                    blob_client.stage_block(block_id=blk_id, data=read_data)
+                    block_list.append(BlobBlock(block_id=blk_id))
+            blob_client.commit_block_list(block_list)
             return True
-        except HttpResponseError as e:
-            logging.exception(f'Initial upload attempt failed with error: {e}')
-            while retries < max_retries:
-                try:
-                    for chunk in chunks:
-                        blob_client.upload_blob(chunk, overwrite=False)
-                    return True
-                except HttpResponseError as e:
-                    logging.exception(f'Upload attempt {retries + 1} failed with error: {e}')
-                    retries += 1
+        except BaseException as err:
+            logging.exception(err)
             return False
 
     def delete(self,

@@ -38,14 +38,14 @@ class InferencePreprocessing:
     def __generate_single_speech(self,text):
         if type(text) == list :
             inputs = self.__prepare_sentences(text)
-            speech_tensor = self.model.generate_speech(inputs["input_ids"],
+            speech_tensor = self.model.model.generate_speech(inputs["input_ids"],
                                                         self.model.speaker_embeddings, vocoder=self.model.vocoder)
         elif type(text) == str :
             sentences = self.__get_sentences(text)
             print(sentences)
             inputs = self.model.processor(text=self.model.normalizer.normalize(sentences[0]),
                                 return_tensors="pt") if len(sentences) == 1 else self.__prepare_sentences(sentences)
-        speech_tensor = self.model.generate_speech(inputs["input_ids"], self.model.speaker_embeddings,
+        speech_tensor = self.model.model.generate_speech(inputs["input_ids"], self.model.speaker_embeddings,
                                               vocoder=self.model.vocoder)
         return speech_tensor.numpy()
 

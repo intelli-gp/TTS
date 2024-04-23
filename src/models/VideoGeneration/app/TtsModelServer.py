@@ -6,12 +6,15 @@ from VideoGeneration import ListSlidesPydantic, generate_video
 import nest_asyncio
 import uvicorn
 import os
+from dotenv import load_dotenv
+load_dotenv()
 if __name__ == "__main__":
-    acc_name = "graduationproject19024"
-    acc_key = "l6cWAFptkSjT9EI033DehgiVbVXojBFF89mAN+JN8ibNGk3jhB/TComT+FEf+w3YvuQoWSu7TGbT+AStQWWNZg=="
-    container_name = "videos"
+    acc_name = os.getenv("ACC_NAME")
+    acc_key = os.getenv("ACC_KEY")
+    container_name = os.getenv("CONTAINER_NAME")
     azure_storage_sas = AzureStorageSas(acc_name, acc_key, container_name)
-    app = FastAPI(title='TTS_model')
+    app_name = os.getenv("APP_NAME")
+    app = FastAPI(title=app_name)
     model = Tts_Model()
     @app.get("/")
     def root():

@@ -7,8 +7,7 @@ from Slide import Slide
 from TtsModel import Tts_Model
 from AzureStorageSas import AzureStorageSas
 import os
-import uvicorn
-import nest_asyncio
+from dotenv import load_dotenv
 
 generated_data_path = "data/generated/VideoGeneration/"
 if not os.path.exists(generated_data_path):
@@ -54,32 +53,20 @@ def generate_video(slides:ListSlidesPydantic,azure_storage_sas,model):
     # Return file url
     return url
 
+def generate_video_link(slides:list[dict]):
+    slides_list = ListSlidesPydantic(slides=[SlidePydantic(title=s['title'],points =s['points'],text =s['text']) for s in slides])
+    acc_name = os.getenv("ACC_NAME")
+    acc_key = os.getenv("ACC_KEY")
+    container_name = os.getenv("CONTAINER_NAME")
+    azure_storage_sas = AzureStorageSas(acc_name, acc_key, container_name)
+    model = Tts_Model()
+    return generate_video(slides_list,azure_storage_sas,model)
 
-class EndPoints():
-    app = FastAPI(title='TTS_model')
-    def __init__(self,azure_storage_sas: AzureStorageSas):
-        self.azure_storage_sas = azure_storage_sas
-        self.model = Tts_Model()
-    @app.get("/")
-    def root():
-        return {"message": "Hello World"}
-    # post tts model endpoint
-    @app.post("/tts") 
-    def generate_video(self,slides:ListSlidesPydantic):
-        generate_video(slides,self.azure_storage_sas,self.model)
-
-def spin_server(endpoints):
-    nest_asyncio.apply()
-    host = "0.0.0.0" if os.getenv("DOCKER-SETUP") else "127.0.0.1"
-    uvicorn.run(endpoints.app , host=host, port=8000)
 
 if __name__ == "__main__":
-    acc_name = "graduationproject19024"
-    acc_key = "l6cWAFptkSjT9EI033DehgiVbVXojBFF89mAN+JN8ibNGk3jhB/TComT+FEf+w3YvuQoWSu7TGbT+AStQWWNZg=="
-    container_name = "videos"
-    azure_storage_sas = AzureStorageSas(acc_name, acc_key, container_name)
-    slide1 = SlidePydantic(title="Introduction", points=["Point 1", "Point 2"], text="This is the introduction slide.")
-    slides_list = ListSlidesPydantic(slides=[slide1])
-    print(generate_video(slides_list,azure_storage_sas,Tts_Model()))
+    load_dotenv()
+    slide1 = {"title":"Introduction", "points":["Point 1", "Point 2"], "text":"This is the introduction slide."}
+    slide2 = {"title":"Introduction2", "points":["Point 3", "Point 4"], "text":"This is the introduction slide two."}
+    print(generate_video_link([slide1,slide2]))
 
 

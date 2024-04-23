@@ -1,6 +1,4 @@
-import os, sys
-sys.path.append(os.getcwd())
-from src.utils.azure_utils import AzureStorage
+from azure_utils import AzureStorage
 from azure.storage.blob import generate_blob_sas, BlobSasPermissions
 from datetime import datetime, timedelta
 class AzureStorageSas(AzureStorage):

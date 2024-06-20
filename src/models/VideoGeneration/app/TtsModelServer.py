@@ -14,6 +14,8 @@ if __name__ == "__main__":
     container_name = os.getenv("CONTAINER_NAME")
     azure_storage_sas = AzureStorageSas(acc_name, acc_key, container_name)
     app_name = os.getenv("APP_NAME")
+    app_port = os.getenv("APP_PORT")
+    app_docker_setup = os.getenv("DOCKER-SETUP").lower() == "true"
     app = FastAPI(title=app_name)
     model = Tts_Model()
     @app.get("/")
@@ -22,7 +24,7 @@ if __name__ == "__main__":
     # post tts model endpoint
     @app.post("/tts") 
     def tts_generate_video(slides:ListSlidesPydantic):
-        return generate_video(slides,azure_storage_sas,model)
+        return {"video_topic": generate_video(slides,azure_storage_sas,model)} 
     nest_asyncio.apply()
-    host = "0.0.0.0" if os.getenv("DOCKER-SETUP") else "127.0.0.1"
-    uvicorn.run(app , host=host, port=8000)
+    host = "0.0.0.0" if os.getenv("DOCKER-SETUP").lower() else "127.0.0.1"
+    uvicorn.run(app , host=host, port=app_port)

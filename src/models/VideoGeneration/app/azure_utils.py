@@ -69,7 +69,7 @@ class AzureStorage(object):
             logging.exception(str(E))
             return False
 
-    def list_all_blobs(self, container_name: str) -> list | None:
+    def list_all_blobs(self, container_name: str) -> list:
         blobs = []
         try:
             container_client = self.blob_service_client.get_container_client(container_name)
@@ -83,7 +83,7 @@ class AzureStorage(object):
     def retrieve(self,
                  container_name: str,
                  blob_name: str,
-                 ) -> bytes | None:
+                 ) -> bytes:
         try:
             logging.info(f'Start retrieving from Container: {container_name}, blob: {blob_name}')
             container_client = self.blob_service_client.get_container_client(container_name)

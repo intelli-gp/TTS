@@ -9,7 +9,7 @@ from AzureStorageSas import AzureStorageSas
 import os
 from dotenv import load_dotenv
 
-generated_data_path = "data/generated/VideoGeneration/"
+generated_data_path = "app/data/generated/VideoGeneration/"
 if not os.path.exists(generated_data_path):
     os.makedirs(generated_data_path)
 
@@ -50,6 +50,7 @@ def generate_video(slides:ListSlidesPydantic,azure_storage_sas,model):
     # get sas for blob for public access
     blob = azure_storage_sas.get_blob_sas(azure_storage_sas.container_name, blob_name)
     url = 'https://'+azure_storage_sas.account_name+'.blob.core.windows.net/'+azure_storage_sas.container_name+'/'+blob_name+'?'+blob
+    print(f"Generated Link: {url}")
     # Return file url
     return url
 

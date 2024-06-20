@@ -11,7 +11,7 @@ import pickle
 class Tts_Model():
     # constant sample rate
     SR = 16000
-    data_path = 'data/processed/Tts model/'
+    data_path = 'app/data/processed/Tts model/'
 
     def __init__(self) -> None:
         self.__load_processor()

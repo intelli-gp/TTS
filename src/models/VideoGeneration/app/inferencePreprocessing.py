@@ -8,11 +8,32 @@ class InferencePreprocessing:
         self.model = model
     # get sentences and add period at the end of each one
     def __get_sentences(self,text, add_period = True):
+        sent_limit = 70
         period = "." if add_period else ""
         sentences = [sent + period for sent in text.split(".")]
+        phrases = []
+        for sent in sentences:
+            curr_sent_length = len(sent)
+            if(curr_sent_length >sent_limit):
+                i = 0
+                while(curr_sent_length > sent_limit):
+                        upper_limit = i+sent_limit if i+sent_limit < len(sent) else len(sent)
+                        curr_line = sent[i:i+sent_limit]
+                        if curr_line[-1] != ' ' and upper_limit != len(sent):
+                            # length of last word
+                            word_offset = len(curr_line.split(" ")[-1])
+                            upper_limit = upper_limit-word_offset
+                        new_sent = sent[i:upper_limit]+'.'
+                        i = upper_limit
+                        phrases.append(new_sent)
+                        curr_sent_length -= sent_limit
+                phrases.append(sent[i:])
+            else:
+                phrases.append(sent)
+                
         # remove last period if it exsists and add_period flag is True
-        if sentences[-1] == period : sentences = sentences[:-1]
-        return sentences
+        if phrases[-1] == period : phrases = phrases[:-1]
+        return phrases
 
     # divide large text into sentences chunks
     def __chunk_text(self,text, max_length = 400):

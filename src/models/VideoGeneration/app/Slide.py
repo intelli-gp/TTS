@@ -11,11 +11,11 @@ class Slide:
     MIN_CONFIDENCE = 0.25
     Y_POS_MIN = 0.25
     Y_POS_IMG_MIN = 0.4
-    def __init__(self, title, bullet_points, audio_array,audio_path):
+    def __init__(self, title, bullet_points,audio_path):
         self.title = title
         self.bullet_points = bullet_points
         # reshape audio array to be size (N x 1) if necessary
-        self.audio_array = audio_array if len(audio_array.shape) == 2 else audio_array.reshape(audio_array.shape[0],1)
+        #self.audio_array = audio_array if len(audio_array.shape) == 2 else audio_array.reshape(audio_array.shape[0],1)
         self.audio_path = audio_path
 
     def __chucnk_bp(self,str):
@@ -56,10 +56,10 @@ class Slide:
     
     def generate_img(self):
         fig, ax = plt.subplots()
-        ax.set_title(self.title)
+        title,total_y_off  = self.__chucnk_bp(self.title)
+        ax.set_title(title, wrap=True, loc='center',y = 1 - total_y_off*0.1)
         x_pos = -0.1
         y_pos = 0.9
-        total_y_off = 0
         for idx, bp in enumerate(self.bullet_points):
             if(len(bp)>0):
                 text, vertical_off = self.__chucnk_bp(bp)

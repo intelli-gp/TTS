@@ -35,24 +35,28 @@ def generate_video(slides:ListSlidesPydantic,azure_storage_sas,model):
     i = 1
     for slide in slides:
         #generate speech
-        speech = inference_preprocessing.generate_speech(slide.text)
-        filepath = curr_generated_data_path+f'slide {i}.wav'
-        i = i +1
-        write(filepath, Tts_Model.SR, speech)
-        # generate slides
-        slide = Slide(slide.title,slide.points,speech,filepath)
-        generated_slides.append(slide)
-    video_path = curr_generated_data_path + "output_video.mp4"
-    Slide.generate_video_from_slides(generated_slides,video_path)
-    # create blob and store it on azure
-    blob_name = datetime.now().strftime("%Y-%m-%d_%H:%M:%S") + video_path
-    azure_storage_sas.store(azure_storage_sas.container_name,blob_name,video_path)
-    # get sas for blob for public access
-    blob = azure_storage_sas.get_blob_sas(azure_storage_sas.container_name, blob_name)
-    url = 'https://'+azure_storage_sas.account_name+'.blob.core.windows.net/'+azure_storage_sas.container_name+'/'+blob_name+'?'+blob
-    print(f"Generated Link: {url}")
-    # Return file url
-    return url
+        if(len(slide.text) > 0 ):
+            speech = inference_preprocessing.generate_speech(slide.text)
+            filepath = curr_generated_data_path+f'slide {i}.wav'
+            i = i +1
+            write(filepath, Tts_Model.SR, speech)
+            # generate slides
+            slide = Slide(slide.title,slide.points,filepath)
+            generated_slides.append(slide)
+    if(len(generated_slides) > 0 ):
+        video_path = curr_generated_data_path + "output_video.mp4"
+        Slide.generate_video_from_slides(generated_slides,video_path)
+        # create blob and store it on azure
+        blob_name = datetime.now().strftime("%Y-%m-%d_%H:%M:%S") + video_path
+        azure_storage_sas.store(azure_storage_sas.container_name,blob_name,video_path)
+        # get sas for blob for public access
+        blob = azure_storage_sas.get_blob_sas(azure_storage_sas.container_name, blob_name)
+        url = 'https://'+azure_storage_sas.account_name+'.blob.core.windows.net/'+azure_storage_sas.container_name+'/'+blob_name+'?'+blob
+        print(f"Generated Link: {url}")
+        # Return file url
+        return url
+    else:
+        return "No text to create video from"
 
 def generate_video_link(slides:list[dict]):
     slides_list = ListSlidesPydantic(slides=[SlidePydantic(title=s['title'],points =s['points'],text =s['text']) for s in slides])

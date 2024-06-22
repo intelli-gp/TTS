@@ -27,4 +27,4 @@ if __name__ == "__main__":
         return {"video_topic": generate_video(slides,azure_storage_sas,model)} 
     nest_asyncio.apply()
     host = "0.0.0.0" if os.getenv("DOCKER-SETUP").lower() else "127.0.0.1"
-    uvicorn.run(app , host=host, port=app_port)
+    uvicorn.run(app , host=host, port=app_port, timeout_keep_alive=3600)

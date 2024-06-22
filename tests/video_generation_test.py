@@ -12,10 +12,6 @@ def request_video_link(slides):
     payload = {"slides": slides_data}
     payload_json = json.dumps(payload)
     api_url = "http://104.41.151.128:8800/tts"
-    headers = {
-        "accept: application/json",
-        "Content-Type: application/json"
-    }
     command = [
         "curl", "-X", "POST", api_url,
         "-H", "accept: application/json",
